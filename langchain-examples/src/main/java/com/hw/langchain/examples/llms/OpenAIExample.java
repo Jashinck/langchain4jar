@@ -35,7 +35,7 @@ public class OpenAIExample {
                 .build()
                 .init();
 
-        var result = llm.predict("What would be a good company name for a company that makes colorful socks?");
+        var result = llm.predict("Introduce West Lake in Hangzhou, China.");
         println(result);
     }
 }

@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.github.hamawhitegg</groupId>
         <artifactId>langchain-java</artifactId>
-        <version>0.1.11</version>
+        <version>0.1.12</version>
     </parent>
 
     <artifactId>openai-client</artifactId>
@@ -19,6 +19,11 @@
         <dependency>
             <groupId>com.squareup.retrofit2</groupId>
             <artifactId>adapter-rxjava2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup.retrofit2</groupId>
+            <artifactId>retrofit-mock</artifactId>
         </dependency>
 
         <dependency>

@@ -23,6 +23,7 @@ import com.hw.langchain.schema.BaseMessage;
 import com.hw.langchain.schema.ChatGeneration;
 import com.hw.langchain.schema.ChatResult;
 import com.hw.openai.OpenAiClient;
+import com.hw.openai.common.OpenaiApiType;
 import com.hw.openai.entity.chat.ChatCompletion;
 import com.hw.openai.entity.chat.ChatCompletionResp;
 import com.hw.openai.entity.chat.Message;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.hw.langchain.chat.models.openai.OpenAI.convertOpenAiToLangChain;
+import static com.hw.langchain.utils.Resilience4jRetryUtils.retryWithExponentialBackoff;
 import static com.hw.langchain.utils.Utils.getOrEnvOrDefault;
 
 /**
@@ -74,6 +76,11 @@ public class ChatOpenAI extends BaseChatModel {
     protected String openaiApiKey;
 
     protected String openaiApiBase;
+
+    @Builder.Default
+    protected OpenaiApiType openaiApiType = OpenaiApiType.OPENAI;
+
+    protected String openaiApiVersion;
 
     protected String openaiOrganization;
 
@@ -123,10 +130,13 @@ public class ChatOpenAI extends BaseChatModel {
         openaiOrganization = getOrEnvOrDefault(openaiOrganization, "OPENAI_ORGANIZATION", "");
         openaiApiBase = getOrEnvOrDefault(openaiApiBase, "OPENAI_API_BASE", "");
         openaiProxy = getOrEnvOrDefault(openaiProxy, "OPENAI_PROXY", "");
+        openaiApiVersion = getOrEnvOrDefault(openaiApiVersion, "OPENAI_API_VERSION", "");
 
         this.client = OpenAiClient.builder()
                 .openaiApiBase(openaiApiBase)
                 .openaiApiKey(openaiApiKey)
+                .openaiApiVersion(openaiApiVersion)
+                .openaiApiType(openaiApiType)
                 .openaiOrganization(openaiOrganization)
                 .openaiProxy(openaiProxy)
                 .requestTimeout(requestTimeout)
@@ -158,7 +168,7 @@ public class ChatOpenAI extends BaseChatModel {
     }
 
     @Override
-    public ChatResult _generate(List<BaseMessage> messages, List<String> stop) {
+    public ChatResult innerGenerate(List<BaseMessage> messages, List<String> stop) {
         var chatMessages = convertMessages(messages);
 
         ChatCompletion chatCompletion = ChatCompletion.builder()
@@ -171,7 +181,7 @@ public class ChatOpenAI extends BaseChatModel {
                 .stop(stop)
                 .build();
 
-        var response = client.create(chatCompletion);
+        var response = retryWithExponentialBackoff(maxRetries, () -> client.createChatCompletion(chatCompletion));
         return createChatResult(response);
     }
 

@@ -19,16 +19,19 @@
 package com.hw.langchain.llms.openai;
 
 import com.hw.langchain.llms.base.BaseLLM;
+import com.hw.langchain.schema.AsyncLLMResult;
 import com.hw.langchain.schema.Generation;
 import com.hw.langchain.schema.LLMResult;
 import com.hw.langchain.utils.Utils;
 import com.hw.openai.OpenAiClient;
+import com.hw.openai.common.OpenaiApiType;
 import com.hw.openai.entity.chat.ChatCompletion;
 import com.hw.openai.entity.chat.ChatCompletionResp;
 import com.hw.openai.entity.chat.Message;
 
 import lombok.Builder;
 import lombok.experimental.SuperBuilder;
+import reactor.core.publisher.Flux;
 
 import java.util.*;
 
@@ -95,6 +98,17 @@ public class OpenAIChat extends BaseLLM {
     protected String openaiApiBase;
 
     /**
+     * Api type for Azure OpenAI API.
+     */
+    @Builder.Default
+    protected OpenaiApiType openaiApiType = OpenaiApiType.OPENAI;
+
+    /**
+     * Api version for Azure OpenAI API.
+     */
+    protected String openaiApiVersion;
+
+    /**
      * Organization ID for OpenAI.
      */
     protected String openaiOrganization;
@@ -137,10 +151,13 @@ public class OpenAIChat extends BaseLLM {
         openaiApiKey = Utils.getOrEnvOrDefault(openaiApiKey, "OPENAI_API_KEY");
         openaiOrganization = Utils.getOrEnvOrDefault(openaiOrganization, "OPENAI_ORGANIZATION", "");
         openaiProxy = Utils.getOrEnvOrDefault(openaiProxy, "OPENAI_PROXY", "");
+        openaiApiVersion = Utils.getOrEnvOrDefault(openaiApiVersion, "OPENAI_API_VERSION", "");
 
         this.client = OpenAiClient.builder()
                 .openaiApiBase(openaiApiBase)
                 .openaiApiKey(openaiApiKey)
+                .openaiApiVersion(openaiApiVersion)
+                .openaiApiType(openaiApiType)
                 .openaiOrganization(openaiOrganization)
                 .openaiProxy(openaiProxy)
                 .requestTimeout(requestTimeout)
@@ -171,7 +188,7 @@ public class OpenAIChat extends BaseLLM {
                 .stop(stop)
                 .build();
 
-        ChatCompletionResp response = client.create(chatCompletion);
+        ChatCompletionResp response = client.createChatCompletion(chatCompletion);
 
         List<List<Generation>> generations = new ArrayList<>();
         Generation generation = Generation.builder()
@@ -185,6 +202,11 @@ public class OpenAIChat extends BaseLLM {
         llmOutput.put("model_name", response.getModel());
 
         return new LLMResult(generations, llmOutput);
+    }
+
+    @Override
+    protected Flux<AsyncLLMResult> asyncInnerGenerate(List<String> prompts, List<String> stop) {
+        throw new UnsupportedOperationException("not supported yet.");
     }
 
     private List<Message> getChatMessages(List<String> prompts) {
